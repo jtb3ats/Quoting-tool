@@ -1,4 +1,6 @@
 # Import necessary libraries
+import os
+os.system("pip install pillow==8.4.0")
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 import streamlit as st
