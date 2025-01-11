@@ -32,14 +32,18 @@ st.sidebar.header("Enter Property Details")
 zip_code = st.sidebar.selectbox("Select Zip Code", df['Zip Code'].unique())
 property_size = st.sidebar.number_input("Enter Property Size (sq ft)", min_value=1000, max_value=50000, step=1000)
 
-# One-Hot Encoding for Input
-input_data = {f'Zip Code_{zc}': 1 if zip_code == zc else 0 for zc in df['Zip Code'].unique()}
+# Ensure input DataFrame has the same columns as the model was trained on
+input_data = {f'Zip Code_{zc}': 0 for zc in df['Zip Code'].unique()}  # Set all zip code columns to 0
+input_data[f'Zip Code_{zip_code}'] = 1  # Set the selected zip code to 1
 input_data['Property Size (sq ft)'] = property_size
 
-# Convert input data to DataFrame
+# Convert to DataFrame
 input_df = pd.DataFrame([input_data])
 
-# Prediction
+# Ensure the columns match exactly (fill missing columns with 0)
+input_df = input_df.reindex(columns=X.columns, fill_value=0)
+
+# Make the prediction
 prediction = model.predict(input_df)[0]
 
 # Display the result
