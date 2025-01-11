@@ -10,24 +10,41 @@ import time
 st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
 
 # -----------------------------
-# Helper Functions
+# Base Costs for Services
 # -----------------------------
-def simulate_job_costs(zip_code, job_type, lot_size, complexity, special_requests):
+base_costs = {
+    "Lawn Care": {"Small": 50, "Medium": 100, "Large": 200},
+    "Tree Trimming": {"Small": 300, "Medium": 700, "Large": 1200},
+    "Garden Maintenance": {"Small": 150, "Medium": 400, "Large": 800},
+    "Irrigation Installation": {"Base": 2500},
+    "Tree Removal": {"Base": 800},
+    "Seasonal Services": {"Base": 200}
+}
+
+# Regional adjustments based on location type
+regional_adjustments = {
+    "Urban": 1.2,  # 20% increase
+    "Suburban": 1.0,  # Standard rate
+    "Rural": 0.85  # 15% decrease
+}
+
+# -----------------------------
+# Function to simulate job costs
+# -----------------------------
+def simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests, region_type):
     """Simulate job costs based on input parameters."""
-    # Base job costs (can be expanded)
-    base_costs = {
-        "Lawn Care": 100,
-        "Tree Trimming": 250,
-        "Garden Maintenance": 150
-    }
-
-    # Adjust costs based on lot size
-    size_multiplier = {"Small": 1.0, "Medium": 1.2, "Large": 1.5}
+    
+    # Get the base cost
+    base_cost = base_costs[job_type][lot_size]
+    
+    # Adjust for terrain complexity
     complexity_multiplier = {"Flat": 1.0, "Sloped": 1.2, "Rocky": 1.3}
-
-    base_cost = base_costs[job_type]
-    adjusted_cost = base_cost * size_multiplier[lot_size] * complexity_multiplier[complexity]
-
+    adjusted_cost = base_cost * complexity_multiplier[complexity]
+    
+    # Apply regional adjustment
+    regional_multiplier = regional_adjustments[region_type]
+    adjusted_cost *= regional_multiplier
+    
     # Add special request cost
     if special_requests:
         adjusted_cost += 50
@@ -49,14 +66,15 @@ if menu == "Home 🏠":
 
     # Input fields
     zip_code = st.text_input("Enter ZIP Code 🏙️", placeholder="E.g., 90210")
-    job_type = st.selectbox("Select Job Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance"])
+    job_type = st.selectbox("Select Job Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance", "Irrigation Installation", "Tree Removal", "Seasonal Services"])
     lot_size = st.selectbox("Select Lot Size 📏", ["Small", "Medium", "Large"])
     complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
     special_requests = st.text_input("Special Requests (Optional)")
+    region_type = st.selectbox("Region Type 🌆", ["Urban", "Suburban", "Rural"])
 
     # Generate quote
     if st.button("Get Quote 🔘"):
-        predicted_cost = simulate_job_costs(zip_code, job_type, lot_size, complexity, special_requests)
+        predicted_cost = simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests, region_type)
         lower_bound = predicted_cost * 0.9
         upper_bound = predicted_cost * 1.1
         st.success(f"Estimated Quote: ${lower_bound:.2f} - ${upper_bound:.2f}")
