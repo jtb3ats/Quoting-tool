@@ -4,10 +4,19 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
-import os
+import requests
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
+
+# -----------------------------
+# Function to get location-based pricing
+# -----------------------------
+def get_location_multiplier(zip_code):
+    """Fetch location-based pricing multiplier using ZIP code."""
+    # Placeholder function: Replace with actual API call or database lookup
+    # For demonstration, returning a dummy multiplier
+    return 1.0  # Default multiplier
 
 # -----------------------------
 # Base Costs for Services
@@ -53,6 +62,8 @@ base_costs = {
 # -----------------------------
 def simulate_job_cost(zip_code, job_type, size_category, complexity, special_requests):
     """Simulate job costs based on input parameters."""
+    # Fetch location-based multiplier
+    location_multiplier = get_location_multiplier(zip_code)
 
     # Check if the job type exists in base_costs
     if job_type not in base_costs:
@@ -64,7 +75,10 @@ def simulate_job_cost(zip_code, job_type, size_category, complexity, special_req
 
     # Adjust for terrain complexity (if applicable)
     complexity_multiplier = {"Flat": 1.0, "Sloped": 1.2, "Rocky": 1.3}
-    adjusted_cost = base_cost * complexity_multiplier[complexity]
+    adjusted_cost = base_cost * complexity_multiplier.get(complexity, 1.0)
+
+    # Apply location multiplier
+    adjusted_cost *= location_multiplier
 
     # Add special request cost
     if special_requests:
@@ -141,62 +155,6 @@ elif menu == "Upload Data 📂":
         st.write("Uploaded Dataset:")
         st.dataframe(data)
 
-        # Feature Expansion: Add more features for improved predictions
-        st.write("Training the model...")
-        X = data[['ZIP Code', 'Job Type', 'Lot Size', 'Population Density', 'Median Home Value', 'Seasonal Adjustment']]
-        y = data['Actual Cost']
-        model = RandomForestRegressor()
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model.fit(X_train, y_train)
-
-        # Predictions
-        y_pred = model.predict(X_test)
-
-        # Calculate performance metrics
-        mae = mean_absolute_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-
-        # Update the retraining counter
-        retrain_count = st.session_state.get("retrain_count", 0)
-        retrain_count += 1
-        st.session_state["retrain_count"] = retrain_count
-
-        # Display performance metrics
-        st.success("Model retrained with uploaded data!")
-        st.write(f"Mean Absolute Error: {mae:.2f}")
-        st.write(f"R-Squared (R²): {r2:.2f}")
-        st.write(f"Number of Retrainings: {retrain_count}")
-
-# -----------------------------
-# Model Performance Page
-# -----------------------------
-elif menu == "Model Performance 📊":
-    st.title("Model Performance")
-    st.markdown("Track how your model is improving over time.")
-
-    # Check if session state has the required values
-    if "performance_history" not in st.session_state:
-        st.session_state["performance_history"] = []
-
-    # Display dynamic performance metrics
-    mae = st.session_state.get("mae", None)
-    r2 = st.session_state.get("r2", None)
-    retrain_count = st.session_state.get("retrain_count", 0)
-
-    if mae is not None and r2 is not None:
-        # Store performance history
-        st.session_state["performance_history"].append({"Retraining": retrain_count, "MAE": mae, "R²": r2})
-
-        # Convert to DataFrame for plotting
-        performance_df = pd.DataFrame(st.session_state["performance_history"])
-
-        # Display current metrics
-        st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
-        st.write(f"R-Squared (R²): {r2:.2f}")
-        st.write(f"Number of Retrainings: {retrain_count}")
-
-        # Plot R² scores over time
-        st.markdown("### R² Score Over Time")
-        st.line_chart(performance_df.set_index("Retraining")["R²"])
-    else:
-        st.warning("No performance metrics available yet. Please retrain the model to see performance metrics.")
+        # Feature Expansion: Add more features for
+::contentReference[oaicite:0]{index=0}
+ 
