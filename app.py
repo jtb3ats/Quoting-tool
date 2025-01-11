@@ -145,6 +145,9 @@ if menu == "Home 🏠":
 # -----------------------------
 # Upload Data Page
 # -----------------------------
+# -----------------------------
+# Upload Data Page
+# -----------------------------
 elif menu == "Upload Data 📂":
     st.title("Upload Your Job Data for Model Training")
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
@@ -156,5 +159,5 @@ elif menu == "Upload Data 📂":
         st.dataframe(data)
 
         # Feature Expansion: Add more features for
-::contentReference[oaicite:0]{index=0}
+
  
