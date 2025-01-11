@@ -1,4 +1,3 @@
-# Import necessary libraries
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -142,9 +141,9 @@ elif menu == "Upload Data 📂":
         st.write("Uploaded Dataset:")
         st.dataframe(data)
 
-        # Train the Random Forest model
+        # Feature Expansion: Add more features for improved predictions
         st.write("Training the model...")
-        X = data[['ZIP Code', 'Job Type', 'Lot Size', 'Population Density', 'Median Home Value']]
+        X = data[['ZIP Code', 'Job Type', 'Lot Size', 'Population Density', 'Median Home Value', 'Seasonal Adjustment']]
         y = data['Actual Cost']
         model = RandomForestRegressor()
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
