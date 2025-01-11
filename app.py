@@ -105,31 +105,17 @@ if menu == "Home 🏠":
 
     # Input fields
     zip_code = st.text_input("Enter ZIP Code 🏙️", placeholder="E.g., 90210")
+
+    # Ensure ZIP code is treated as a string and properly formatted
+    if zip_code:
+        zip_code = zip_code.zfill(5)  # This ensures the ZIP code has leading zeros
+
     job_type = st.selectbox("Select Job Type 🛠️", [
         "Lawn Care", "Tree Trimming", "Garden Maintenance",
         "Irrigation Installation", "Tree Removal", "Seasonal Services", "Snow Clearing"
     ])
 
-    # Size category options based on job type
-    if job_type == "Lawn Care":
-        size_category = st.selectbox("Select Lawn Size 📏", ["Up to 5,000 sq ft", "5,000 - 10,000 sq ft", "Over 10,000 sq ft"])
-    elif job_type == "Tree Trimming":
-        size_category = st.selectbox("Select Number of Trees 🌳", ["1-2 Trees", "3-5 Trees", "6+ Trees"])
-    elif job_type == "Garden Maintenance":
-        size_category = st.selectbox("Select Garden Size 🌷", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
-    elif job_type == "Irrigation Installation":
-        size_category = st.selectbox("Select Installation Type 💧", ["Base Cost"])
-    elif job_type == "Tree Removal":
-        size_category = st.selectbox("Select Tree Size 🌲", ["Small Tree", "Medium Tree", "Large Tree"])
-    elif job_type == "Seasonal Services":
-        size_category = st.selectbox("Select Job Size 🍂", ["Small Job", "Medium Job", "Large Job"])
-    elif job_type == "Snow Clearing":
-        size_category = st.selectbox("Select Area Size ❄️", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
-    else:
-        size_category = st.selectbox("Select Size Category 📏", ["Unknown"])
-
-    complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
-    special_requests = st.text_input("Special Requests (Optional)")
+    # Rest of your code for handling job type, size, complexity, etc.
 
     # Dynamic quote prediction
     if zip_code and job_type and size_category and complexity:
@@ -141,10 +127,7 @@ if menu == "Home 🏠":
             <p><strong>Range:</strong> ${lower_bound:.2f} - ${upper_bound:.2f}</p>
         </div>
         """, unsafe_allow_html=True)
-
-# -----------------------------
-# Upload Data Page
-# -----------------------------
+        
 # -----------------------------
 # Upload Data Page
 # -----------------------------
