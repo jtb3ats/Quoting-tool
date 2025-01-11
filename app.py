@@ -10,6 +10,15 @@ from sklearn.metrics import mean_squared_error
 st.set_page_config(page_title="Instant Quote Tool", layout="wide")
 
 # -----------------------------
+# Service-Specific Pricing Adjustments
+# -----------------------------
+service_pricing_factors = {
+    "Lawn Care": {"base_rate": 0.1, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.2, "Mixed": 1.5}},
+    "Tree Trimming": {"base_rate": 0.15, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.3, "Mixed": 1.6}},
+    "Garden Maintenance": {"base_rate": 0.12, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.1, "Mixed": 1.4}},
+}
+
+# -----------------------------
 # Function to get location info from Zippopotam.us API
 # -----------------------------
 @st.cache_data
@@ -24,55 +33,32 @@ def get_location_info(zip_code):
         return None, None
 
 # -----------------------------
-# Function to get cost of living index from Numbeo API
+# Function to calculate the cost multiplier
 # -----------------------------
-@st.cache_data
-def get_cost_of_living_index(city, state):
-    api_key = "YOUR_NUMBEO_API_KEY"
-    url = f"https://www.numbeo.com/api/cost_of_living?city={city}&country=USA&api_key={api_key}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        return data['cost_of_living_index']
-    else:
-        return 100  # Default value if API call fails
-
-# -----------------------------
-# Function to get median home value from a property API (Zillow/Redfin)
-# -----------------------------
-def get_median_home_value(zip_code):
-    # Placeholder function - replace with real API call
-    # For now, return a default value
-    return 300000
-
-# -----------------------------
-# Function to get population density from US Census API
-# -----------------------------
-def get_population_density(zip_code):
-    # Placeholder function - replace with real API call
-    # For now, return a default value
-    return 500  # People per square mile
-
-# -----------------------------
-# Function to calculate cost multiplier based on real-time data
-# -----------------------------
-def calculate_cost_multiplier(zip_code):
+def calculate_cost_multiplier(zip_code, service_type, terrain_type):
     city, state = get_location_info(zip_code)
-    if city and state:
-        cost_of_living_index = get_cost_of_living_index(city, state)
-        median_home_value = get_median_home_value(zip_code)
-        population_density = get_population_density(zip_code)
+    
+    # Placeholder real-time factors (replace with real API calls)
+    cost_of_living_index = 100  # Replace with API call to Numbeo
+    median_home_value = 300000  # Replace with API call to Zillow/Redfin
+    population_density = 500  # Replace with API call to US Census
+    local_wages = 20  # Replace with API call to BLS
 
-        # Apply the formula to calculate the cost multiplier
-        cost_multiplier = (
-            (cost_of_living_index / 100) * 0.4 +
-            (median_home_value / 500000) * 0.3 +
-            (population_density / 1000) * 0.2
-        )
+    # Calculate the cost multiplier
+    cost_multiplier = (
+        (cost_of_living_index / 100) * 0.4 +
+        (median_home_value / 500000) * 0.3 +
+        (population_density / 1000) * 0.2 +
+        (local_wages / 25) * 0.1
+    )
 
-        return round(cost_multiplier, 2)
-    else:
-        return 1.0  # Default multiplier if location info is not available
+    # Apply service-specific and terrain-specific adjustments
+    service_factor = service_pricing_factors.get(service_type, {}).get("base_rate", 1.0)
+    terrain_factor = service_pricing_factors.get(service_type, {}).get("terrain_adjustment", {}).get(terrain_type, 1.0)
+
+    # Final multiplier
+    final_multiplier = cost_multiplier * service_factor * terrain_factor
+    return round(final_multiplier, 2)
 
 # -----------------------------
 # Sidebar navigation
@@ -90,19 +76,17 @@ if menu == "Home 🏠":
     # Input fields
     zip_code = st.text_input("Enter Zip Code 🏙️", placeholder="E.g., 12345")
     property_size = st.number_input("Enter Property Size 📏 (in sq ft)", min_value=1000, max_value=50000, step=1000)
-    service_type = st.selectbox("Select Service Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance"])
+    service_type = st.selectbox("Select Service Type 🛠️", list(service_pricing_factors.keys()))
     terrain_type = st.selectbox("Select Terrain Type 🌄", ["Flat", "Sloped", "Mixed"])
 
     # Calculate the cost multiplier
     if zip_code:
-        cost_multiplier = calculate_cost_multiplier(zip_code)
+        cost_multiplier = calculate_cost_multiplier(zip_code, service_type, terrain_type)
         st.write(f"Cost Multiplier for {zip_code}: {cost_multiplier}")
 
         # Predefined dataset for demonstration
         data = {
             'Property Size (sq ft)': [5000, 10000, 15000, 20000],
-            'Service Type': ["Lawn Care", "Tree Trimming", "Garden Maintenance", "Lawn Care"],
-            'Terrain Type': ["Flat", "Sloped", "Mixed", "Flat"],
             'Quote ($)': [200, 400, 600, 800]
         }
         df = pd.DataFrame(data)
