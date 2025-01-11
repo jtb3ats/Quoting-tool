@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-import time
+from sklearn.metrics import mean_absolute_error, r2_score
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
@@ -21,39 +21,24 @@ base_costs = {
     "Seasonal Services": {"Base": 200}
 }
 
-# Regional adjustments based on location type
-regional_adjustments = {
-    "Urban": 1.2,  # 20% increase
-    "Suburban": 1.0,  # Standard rate
-    "Rural": 0.85  # 15% decrease
-}
-
 # -----------------------------
 # Function to simulate job costs
 # -----------------------------
-def simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests, region_type):
+def simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests):
     """Simulate job costs based on input parameters."""
-    
-    # Get the base cost
     base_cost = base_costs[job_type][lot_size]
-    
-    # Adjust for terrain complexity
     complexity_multiplier = {"Flat": 1.0, "Sloped": 1.2, "Rocky": 1.3}
     adjusted_cost = base_cost * complexity_multiplier[complexity]
-    
-    # Apply regional adjustment
-    regional_multiplier = regional_adjustments[region_type]
-    adjusted_cost *= regional_multiplier
-    
-    # Add special request cost
+
     if special_requests:
         adjusted_cost += 50
 
-    return adjusted_cost
+    lower_bound = adjusted_cost * 0.9
+    upper_bound = adjusted_cost * 1.1
 
-# -----------------------------
+    return lower_bound, upper_bound
+
 # Sidebar navigation
-# -----------------------------
 st.sidebar.title("Navigation")
 menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Model Performance 📊"])
 
@@ -62,7 +47,7 @@ menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Model Perfor
 # -----------------------------
 if menu == "Home 🏠":
     st.title("Smart Landscaping Quote Tool")
-    st.markdown("Get an instant quote based on property size, job type, and location.")
+    st.markdown("Get instant quotes for landscaping services based on your inputs.")
 
     # Input fields
     zip_code = st.text_input("Enter ZIP Code 🏙️", placeholder="E.g., 90210")
@@ -70,14 +55,16 @@ if menu == "Home 🏠":
     lot_size = st.selectbox("Select Lot Size 📏", ["Small", "Medium", "Large"])
     complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
     special_requests = st.text_input("Special Requests (Optional)")
-    region_type = st.selectbox("Region Type 🌆", ["Urban", "Suburban", "Rural"])
 
-    # Generate quote
-    if st.button("Get Quote 🔘"):
-        predicted_cost = simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests, region_type)
-        lower_bound = predicted_cost * 0.9
-        upper_bound = predicted_cost * 1.1
-        st.success(f"Estimated Quote: ${lower_bound:.2f} - ${upper_bound:.2f}")
+    if zip_code and job_type and lot_size and complexity:
+        lower_bound, upper_bound = simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests)
+
+        st.markdown(f"""
+        <div style="background-color:#f9f9f9;padding:20px;border-radius:10px;">
+            <h3>Estimated Quote 💰</h3>
+            <p><strong>Range:</strong> ${lower_bound:.2f} - ${upper_bound:.2f}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # -----------------------------
 # Upload Data Page
@@ -97,22 +84,33 @@ elif menu == "Upload Data 📂":
         X = data[['ZIP Code', 'Job Type', 'Lot Size', 'Population Density', 'Median Home Value']]
         y = data['Actual Cost']
         model = RandomForestRegressor()
-        model.fit(X, y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        model.fit(X_train, y_train)
 
+        # Predictions
+        y_pred = model.predict(X_test)
+
+        # Calculate performance metrics
+        mae = mean_absolute_error(y_test, y_pred)
+        r2 = r2_score(y_test, y_pred)
+
+        # Display performance metrics
         st.success("Model retrained with uploaded data!")
+        st.write(f"Mean Absolute Error: {mae:.2f}")
+        st.write(f"R-Squared (R²): {r2:.2f}")
 
 # -----------------------------
 # Model Performance Page
 # -----------------------------
 elif menu == "Model Performance 📊":
     st.title("Model Performance")
-    st.markdown("Track the performance of your model over time.")
+    st.markdown("Track how your model is improving over time.")
 
     # Example performance metrics
     metrics = {
-        "Mean Absolute Error": 25.4,
-        "R-Squared": 0.85,
-        "Number of Retrainings": 5
+        "Mean Absolute Error": mae,
+        "R-Squared": r2,
+        "Number of Retrainings": 5  # Replace with a dynamic counter if needed
     }
 
     st.write(metrics)
