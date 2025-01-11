@@ -1,4 +1,5 @@
-scikit-learn
-pandas
 streamlit
-pillow
+pandas
+scikit-learn
+matplotlib
+seaborn
