@@ -1,51 +1,58 @@
 # Import necessary libraries
+import streamlit as st
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-import streamlit as st
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Streamlit App Title
-st.title("Property Quote Estimator")
+# Set Streamlit page configuration
+st.set_page_config(page_title="Instant Quote Tool", layout="wide")
 
-# Data Preparation
-data = {
-    'Zip Code': [12345, 12346, 12347, 12348],
-    'Property Size (sq ft)': [5000, 10000, 15000, 20000],
-    'Quote ($)': [200, 400, 600, 800]
-}
+# Sidebar navigation
+st.sidebar.title("Navigation")
+menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Visualize Data 📊"])
 
-# Convert the data into a pandas DataFrame
-df = pd.DataFrame(data)
+# ----------------------------------------------
+# Stage 1: Home Page (Input fields and Quote Prediction)
+# ----------------------------------------------
+if menu == "Home 🏠":
+    st.title("Instant Quote Tool for Landscaping Services")
+    st.markdown("Use this tool to get an instant quote based on property size, zip code, and type of service.")
 
-# One-hot encoding for 'Zip Code' to handle categorical data
-df_encoded = pd.get_dummies(df, columns=['Zip Code'])
-X = df_encoded.drop('Quote ($)', axis=1)
-y = df['Quote ($)']
+    # Input fields
+    zip_code = st.text_input("Enter Zip Code 🏙️", placeholder="E.g., 12345")
+    property_size = st.number_input("Enter Property Size 📏 (in sq ft)", min_value=1000, max_value=50000, step=1000)
+    service_type = st.selectbox("Select Service Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance"])
 
-# Model Training
-model = LinearRegression()
-model.fit(X, y)
+    # Predefined dataset (for demonstration purposes)
+    data = {
+        'Zip Code': [12345, 12346, 12347, 12348],
+        'Property Size (sq ft)': [5000, 10000, 15000, 20000],
+        'Service Type': ["Lawn Care", "Tree Trimming", "Garden Maintenance", "Lawn Care"],
+        'Quote ($)': [200, 400, 600, 800]
+    }
+    df = pd.DataFrame(data)
 
-# Streamlit Inputs
-st.sidebar.header("Enter Property Details")
+    # One-hot encoding for categorical features
+    df_encoded = pd.get_dummies(df, columns=['Zip Code', 'Service Type'])
 
-# Input Zip Code and Property Size
-zip_code = st.sidebar.selectbox("Select Zip Code", df['Zip Code'].unique())
-property_size = st.sidebar.number_input("Enter Property Size (sq ft)", min_value=1000, max_value=50000, step=1000)
+    # Split data into features and target
+    X = df_encoded.drop('Quote ($)', axis=1)
+    y = df_encoded['Quote ($)']
 
-# Ensure input DataFrame has the same columns as the model was trained on
-input_data = {f'Zip Code_{zc}': 0 for zc in df['Zip Code'].unique()}  # Set all zip code columns to 0
-input_data[f'Zip Code_{zip_code}'] = 1  # Set the selected zip code to 1
-input_data['Property Size (sq ft)'] = property_size
+    # Train a Linear Regression model
+    model = LinearRegression()
+    model.fit(X, y)
 
-# Convert to DataFrame
-input_df = pd.DataFrame([input_data])
+    # Create input DataFrame for prediction
+    input_data = {
+        f'Zip Code_{zip_code}': 1,
+        'Property Size (sq ft)': property_size,
+        f'Service Type_{service_type}': 1
+    }
 
-# Ensure the columns match exactly (fill missing columns with 0)
-input_df = input_df.reindex(columns=X.columns, fill_value=0)
-
-# Make the prediction
-prediction = model.predict(input_df)[0]
-
-# Display the result
-st.write("### Estimated Quote:")
-st.success(f"${prediction:.2f}")
+    # Fill missing columns with zeros
+    for col in X.columns:
+        if col not in input_data:
+          
