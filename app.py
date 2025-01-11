@@ -175,7 +175,29 @@ elif menu == "Model Performance 📊":
     st.title("Model Performance")
     st.markdown("Track how your model is improving over time.")
 
+    # Check if session state has the required values
+    if "performance_history" not in st.session_state:
+        st.session_state["performance_history"] = []
+
     # Display dynamic performance metrics
-    st.write(f"Mean Absolute Error: {st.session_state.get('mae', 'N/A'):.2f}")
-    st.write(f"R-Squared (R²): {st.session_state.get('r2', 'N/A'):.2f}")
-    st.write(f"Number of Retrainings: {st.session_state.get('retrain_count', 0)}")
+    mae = st.session_state.get("mae", None)
+    r2 = st.session_state.get("r2", None)
+    retrain_count = st.session_state.get("retrain_count", 0)
+
+    if mae is not None and r2 is not None:
+        # Store performance history
+        st.session_state["performance_history"].append({"Retraining": retrain_count, "MAE": mae, "R²": r2})
+
+        # Convert to DataFrame for plotting
+        performance_df = pd.DataFrame(st.session_state["performance_history"])
+
+        # Display current metrics
+        st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+        st.write(f"R-Squared (R²): {r2:.2f}")
+        st.write(f"Number of Retrainings: {retrain_count}")
+
+        # Plot R² scores over time
+        st.markdown("### R² Score Over Time")
+        st.line_chart(performance_df.set_index("Retraining")["R²"])
+    else:
+        st.warning("No performance metrics available yet. Please retrain the model to see performance metrics.")
