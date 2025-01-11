@@ -1,142 +1,100 @@
 # Import necessary libraries
 import streamlit as st
 import pandas as pd
-import requests
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+import time
 
 # Set Streamlit page configuration
-st.set_page_config(page_title="Instant Quote Tool", layout="wide")
+st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
 
 # -----------------------------
-# Service-Specific Pricing Adjustments
+# Helper Functions
 # -----------------------------
-service_pricing_factors = {
-    "Lawn Care": {"base_rate": 0.10, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.2, "Mixed": 1.3}},
-    "Tree Trimming": {"base_rate": 0.20, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.3, "Mixed": 1.4}},
-    "Garden Maintenance": {"base_rate": 0.12, "terrain_adjustment": {"Flat": 1.0, "Sloped": 1.1, "Mixed": 1.3}},
-}
+def simulate_job_costs(zip_code, job_type, lot_size, complexity, special_requests):
+    """Simulate job costs based on input parameters."""
+    # Base job costs (can be expanded)
+    base_costs = {
+        "Lawn Care": 100,
+        "Tree Trimming": 250,
+        "Garden Maintenance": 150
+    }
 
-# -----------------------------
-# Function to get location info from Zippopotam.us API
-# -----------------------------
-@st.cache_data
-def get_location_info(zip_code):
-    response = requests.get(f"https://api.zippopotam.us/us/{zip_code}")
-    if response.status_code == 200:
-        data = response.json()
-        city = data['places'][0]['place name']
-        state = data['places'][0]['state abbreviation']
-        return city, state
-    else:
-        return None, None
+    # Adjust costs based on lot size
+    size_multiplier = {"Small": 1.0, "Medium": 1.2, "Large": 1.5}
+    complexity_multiplier = {"Flat": 1.0, "Sloped": 1.2, "Rocky": 1.3}
 
-# -----------------------------
-# Function to get cost of living index from Numbeo API (Placeholder)
-# -----------------------------
-def get_cost_of_living_index(city, state):
-    # Replace this with a real API call to Numbeo
-    cost_of_living_index = 100  # Default value
-    return cost_of_living_index
+    base_cost = base_costs[job_type]
+    adjusted_cost = base_cost * size_multiplier[lot_size] * complexity_multiplier[complexity]
 
-# -----------------------------
-# Function to calculate the cost multiplier
-# -----------------------------
-def calculate_cost_multiplier(zip_code):
-    city, state = get_location_info(zip_code)
-    if city and state:
-        cost_of_living_index = get_cost_of_living_index(city, state)
-        population_density = 1000  # Placeholder for Census API
-        wage_index = 20  # Placeholder for BLS API
-        home_value_index = 300000  # Placeholder for Zillow API
+    # Add special request cost
+    if special_requests:
+        adjusted_cost += 50
 
-        # Calculate the cost multiplier using a weighted formula
-        cost_multiplier = (
-            (cost_of_living_index / 100) * 0.4 +
-            (population_density / 1000) * 0.3 +
-            (wage_index / 25) * 0.2 +
-            (home_value_index / 500000) * 0.1
-        )
-        return round(cost_multiplier, 2)
-    else:
-        return 1.0
+    return adjusted_cost
 
 # -----------------------------
 # Sidebar navigation
 # -----------------------------
 st.sidebar.title("Navigation")
-menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Visualize Data 📊"])
+menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Model Performance 📊"])
 
 # -----------------------------
-# Stage 1: Home Page
+# Home Page
 # -----------------------------
 if menu == "Home 🏠":
-    st.title("Instant Quote Tool for Landscaping Services")
-    st.markdown("Get an instant quote based on property size, zip code, and type of service.")
+    st.title("Smart Landscaping Quote Tool")
+    st.markdown("Get an instant quote based on property size, job type, and location.")
 
     # Input fields
-    zip_code = st.text_input("Enter Zip Code 🏙️", placeholder="E.g., 12345")
-    property_size = st.number_input("Enter Property Size 📏 (in sq ft)", min_value=1000, max_value=50000, step=1000)
-    service_type = st.selectbox("Select Service Type 🛠️", list(service_pricing_factors.keys()))
-    terrain_type = st.selectbox("Select Terrain Type 🌄", ["Flat", "Sloped", "Mixed"])
+    zip_code = st.text_input("Enter ZIP Code 🏙️", placeholder="E.g., 90210")
+    job_type = st.selectbox("Select Job Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance"])
+    lot_size = st.selectbox("Select Lot Size 📏", ["Small", "Medium", "Large"])
+    complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
+    special_requests = st.text_input("Special Requests (Optional)")
 
-    # Get location info and cost multiplier
-    if zip_code:
-        city, state = get_location_info(zip_code)
-        if city and state:
-            st.write(f"Location: {city}, {state}")
-            cost_multiplier = calculate_cost_multiplier(zip_code)
-            st.write(f"Cost Multiplier: {cost_multiplier}")
-
-            # Get service-specific adjustments
-            service_base_rate = service_pricing_factors[service_type]["base_rate"]
-            terrain_adjustment = service_pricing_factors[service_type]["terrain_adjustment"][terrain_type]
-
-            # Calculate the base quote
-            base_quote = property_size * service_base_rate * terrain_adjustment
-
-            # Adjust the quote based on the cost multiplier
-            adjusted_quote = base_quote * cost_multiplier
-
-            # Calculate confidence interval (95%)
-            lower_bound = adjusted_quote * 0.9
-            upper_bound = adjusted_quote * 1.1
-
-            # Display the adjusted quote with confidence interval
-            if st.button("Get Quote 🔘"):
-                st.success(f"Estimated Quote: ${adjusted_quote:.2f}")
-                st.write(f"95% Confidence Interval: ${lower_bound:.2f} - ${upper_bound:.2f}")
-        else:
-            st.error("Invalid Zip Code. Please enter a valid US zip code.")
+    # Generate quote
+    if st.button("Get Quote 🔘"):
+        predicted_cost = simulate_job_costs(zip_code, job_type, lot_size, complexity, special_requests)
+        lower_bound = predicted_cost * 0.9
+        upper_bound = predicted_cost * 1.1
+        st.success(f"Estimated Quote: ${lower_bound:.2f} - ${upper_bound:.2f}")
 
 # -----------------------------
-# Stage 2: Upload Data Page
+# Upload Data Page
 # -----------------------------
 elif menu == "Upload Data 📂":
-    st.title("Upload Your Dataset")
+    st.title("Upload Your Job Data for Model Training")
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file is not None:
-        custom_data = pd.read_csv(uploaded_file)
+        # Load the uploaded CSV
+        data = pd.read_csv(uploaded_file)
         st.write("Uploaded Dataset:")
-        st.dataframe(custom_data)
+        st.dataframe(data)
 
-        # Train the model on the uploaded data
-        model = LinearRegression()
-        X = custom_data.drop('Quote ($)', axis=1)
-        y = custom_data['Quote ($)']
+        # Train the Random Forest model
+        st.write("Training the model...")
+        X = data[['ZIP Code', 'Job Type', 'Lot Size', 'Population Density', 'Median Home Value']]
+        y = data['Actual Cost']
+        model = RandomForestRegressor()
         model.fit(X, y)
 
-        st.success("Model retrained with uploaded dataset!")
+        st.success("Model retrained with uploaded data!")
 
 # -----------------------------
-# Stage 3: Visualize Data Page
+# Model Performance Page
 # -----------------------------
-elif menu == "Visualize Data 📊":
-    st.title("Data Visualization")
-    st.markdown("Explore the data used to train the model and see how it fits.")
-    st.line_chart(pd.DataFrame({
-        'Property Size (sq ft)': [5000, 10000, 15000, 20000],
-        'Quote ($)': [200, 400, 600, 800]
-    }).set_index('Property Size (sq ft)'))
+elif menu == "Model Performance 📊":
+    st.title("Model Performance")
+    st.markdown("Track the performance of your model over time.")
+
+    # Example performance metrics
+    metrics = {
+        "Mean Absolute Error": 25.4,
+        "R-Squared": 0.85,
+        "Number of Retrainings": 5
+    }
+
+    st.write(metrics)
