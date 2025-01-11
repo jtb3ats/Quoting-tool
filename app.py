@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import requests
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Instant Quote Tool", layout="wide")
@@ -26,7 +25,7 @@ def get_location_info(zip_code):
     else:
         return None, None
 
-# Function to train a model on the uploaded dataset
+# Function to train a model on the dataset
 @st.cache
 def train_model(data):
     data_encoded = pd.get_dummies(data, columns=['Service Type', 'Terrain Type'])
@@ -86,9 +85,13 @@ if menu == "Home 🏠":
         if col not in input_data:
             input_data[col] = 0
 
+    # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
-    # Base quote prediction
+    # Reindex the input DataFrame to match the model's expected columns
+    input_df = input_df.reindex(columns=X.columns, fill_value=0)
+
+    # Make the base prediction
     base_quote = model.predict(input_df)[0]
 
     # Adjust the quote based on the state's cost multiplier
