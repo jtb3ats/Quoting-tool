@@ -28,30 +28,39 @@ def get_location_info(zip_code):
         data = response.json()
         city = data['places'][0]['place name']
         state = data['places'][0]['state abbreviation']
-        # Determine if the area is urban or rural based on city size (placeholder logic)
-        population_density = get_population_density(zip_code)
-        area_type = "Urban" if population_density > 1000 else "Rural"
-        return city, state, area_type, population_density
+        return city, state
     else:
-        return None, None, None, None
+        return None, None
 
 # -----------------------------
-# Function to get population density from U.S. Census API
+# Function to get cost of living index from Numbeo API (Placeholder)
 # -----------------------------
-def get_population_density(zip_code):
-    # Placeholder logic; replace with real API call to Census Bureau
-    return 500 if zip_code.startswith("123") else 2000
+def get_cost_of_living_index(city, state):
+    # Replace this with a real API call to Numbeo
+    cost_of_living_index = 100  # Default value
+    return cost_of_living_index
 
 # -----------------------------
 # Function to calculate the cost multiplier
 # -----------------------------
-def calculate_cost_multiplier(city, population_density, cost_of_living_index):
-    # Calculate the cost multiplier using a weighted formula
-    cost_multiplier = (
-        (cost_of_living_index / 100) * 0.4 +
-        (population_density / 1000) * 0.3
-    )
-    return round(cost_multiplier, 2)
+def calculate_cost_multiplier(zip_code):
+    city, state = get_location_info(zip_code)
+    if city and state:
+        cost_of_living_index = get_cost_of_living_index(city, state)
+        population_density = 1000  # Placeholder for Census API
+        wage_index = 20  # Placeholder for BLS API
+        home_value_index = 300000  # Placeholder for Zillow API
+
+        # Calculate the cost multiplier using a weighted formula
+        cost_multiplier = (
+            (cost_of_living_index / 100) * 0.4 +
+            (population_density / 1000) * 0.3 +
+            (wage_index / 25) * 0.2 +
+            (home_value_index / 500000) * 0.1
+        )
+        return round(cost_multiplier, 2)
+    else:
+        return 1.0
 
 # -----------------------------
 # Sidebar navigation
@@ -72,18 +81,13 @@ if menu == "Home 🏠":
     service_type = st.selectbox("Select Service Type 🛠️", list(service_pricing_factors.keys()))
     terrain_type = st.selectbox("Select Terrain Type 🌄", ["Flat", "Sloped", "Mixed"])
 
-    # Get location info
+    # Get location info and cost multiplier
     if zip_code:
-        city, state, area_type, population_density = get_location_info(zip_code)
+        city, state = get_location_info(zip_code)
         if city and state:
-            st.write(f"Location: {city}, {state} ({area_type})")
-            st.write(f"Population Density: {population_density} people per sq mile")
-
-            # Placeholder cost of living index (replace with real API call)
-            cost_of_living_index = 100
-
-            # Calculate the cost multiplier
-            cost_multiplier = calculate_cost_multiplier(city, population_density, cost_of_living_index)
+            st.write(f"Location: {city}, {state}")
+            cost_multiplier = calculate_cost_multiplier(zip_code)
+            st.write(f"Cost Multiplier: {cost_multiplier}")
 
             # Get service-specific adjustments
             service_base_rate = service_pricing_factors[service_type]["base_rate"]
