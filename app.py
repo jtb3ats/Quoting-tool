@@ -2,7 +2,9 @@
 import streamlit as st
 import pandas as pd
 import requests
+import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Instant Quote Tool", layout="wide")
@@ -51,6 +53,24 @@ st.sidebar.title("Navigation")
 menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Visualize Data 📊"])
 
 # -----------------------------
+# Function to train the model and calculate confidence intervals
+# -----------------------------
+def train_model(data):
+    data_encoded = pd.get_dummies(data, columns=['Service Type', 'Terrain Type'])
+    X = data_encoded.drop('Quote ($)', axis=1)
+    y = data_encoded['Quote ($)']
+    
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Calculate prediction errors for confidence interval
+    y_pred = model.predict(X)
+    errors = y - y_pred
+    mse = mean_squared_error(y, y_pred)
+    std_dev = np.std(errors)
+    return model, X, mse, std_dev
+
+# -----------------------------
 # Stage 1: Home Page
 # -----------------------------
 if menu == "Home 🏠":
@@ -72,10 +92,10 @@ if menu == "Home 🏠":
             st.error("Invalid Zip Code. Please enter a valid US zip code.")
 
         # Get cost of living adjustment
-        cost_of_living_adjustment = get_cost_of_living(zip_code)
-        st.write(f"Cost of Living Adjustment: {cost_of_living_adjustment}")
+        cost_of_living = get_cost_of_living(zip_code)
+        st.write(f"Cost of Living Adjustment: {cost_of_living}")
 
-    # Predefined dataset
+    # Predefined dataset for demonstration
     data = {
         'Zip Code': [12345, 12346, 12347, 12348],
         'Property Size (sq ft)': [5000, 10000, 15000, 20000],
@@ -86,15 +106,7 @@ if menu == "Home 🏠":
     df = pd.DataFrame(data)
 
     # Train a model on the predefined data
-    def train_model(data):
-        data_encoded = pd.get_dummies(data, columns=['Service Type', 'Terrain Type'])
-        X = data_encoded.drop('Quote ($)', axis=1)
-        y = data_encoded['Quote ($)']
-        model = LinearRegression()
-        model.fit(X, y)
-        return model, X
-
-    model, X = train_model(df)
+    model, X, mse, std_dev = train_model(df)
 
     # Create input DataFrame for prediction
     input_data = {
@@ -108,6 +120,7 @@ if menu == "Home 🏠":
         if col not in input_data:
             input_data[col] = 0
 
+    # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
     # Reindex the input DataFrame to match the model's expected columns
@@ -117,11 +130,16 @@ if menu == "Home 🏠":
     base_quote = model.predict(input_df)[0]
 
     # Adjust the quote based on cost of living
-    adjusted_quote = base_quote * cost_of_living_adjustment
+    adjusted_quote = base_quote * cost_of_living
+
+    # Calculate confidence interval (95%)
+    lower_bound = adjusted_quote - 1.96 * std_dev
+    upper_bound = adjusted_quote + 1.96 * std_dev
 
     # Display the adjusted quote
     if st.button("Get Quote 🔘"):
         st.success(f"Estimated Quote: ${adjusted_quote:.2f}")
+        st.write(f"95% Confidence Interval: ${lower_bound:.2f} - ${upper_bound:.2f}")
 
 # -----------------------------
 # Stage 2: Upload Data Page
@@ -134,8 +152,10 @@ elif menu == "Upload Data 📂":
         custom_data = pd.read_csv(uploaded_file)
         st.write("Uploaded Dataset:")
         st.dataframe(custom_data)
-        model, _ = train_model(custom_data)
+        model, _, mse, std_dev = train_model(custom_data)
         st.success("Model retrained with uploaded dataset!")
+        st.write(f"Mean Squared Error: {mse:.2f}")
+        st.write(f"Standard Deviation of Errors: {std_dev:.2f}")
 
 # -----------------------------
 # Stage 3: Visualize Data Page
