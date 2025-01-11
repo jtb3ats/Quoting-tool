@@ -7,14 +7,17 @@ from sklearn.linear_model import LinearRegression
 # Set Streamlit page configuration
 st.set_page_config(page_title="Instant Quote Tool", layout="wide")
 
-# Predefined cost multipliers by state
+# Predefined cost multipliers by state (can be overridden by API data)
 cost_multipliers = {
-    "NY": 1.2,  # New York
-    "CA": 2.5,  # California
-    "IL": 1.5   # Illinois
+    "NY": 1.2,
+    "CA": 2.5,
+    "IL": 1.5
 }
 
-# Function to get location info from the Zippopotam.us API
+# -----------------------------
+# Function to get location info from Zippopotam.us API
+# -----------------------------
+@st.cache_data
 def get_location_info(zip_code):
     response = requests.get(f"https://api.zippopotam.us/us/{zip_code}")
     if response.status_code == 200:
@@ -25,26 +28,34 @@ def get_location_info(zip_code):
     else:
         return None, None
 
-# Function to train a model on the dataset
-@st.cache
-def train_model(data):
-    data_encoded = pd.get_dummies(data, columns=['Service Type', 'Terrain Type'])
-    X = data_encoded.drop('Quote ($)', axis=1)
-    y = data_encoded['Quote ($)']
-    model = LinearRegression()
-    model.fit(X, y)
-    return model, X
+# -----------------------------
+# Function to get cost of living adjustment
+# (Replace with your chosen API - example is Numbeo)
+# -----------------------------
+@st.cache_data
+def get_cost_of_living(zip_code):
+    # Example: Replace with actual API call
+    # For now, return a static value based on state
+    state_cost_multiplier = {
+        "NY": 1.3,
+        "CA": 1.5,
+        "TX": 1.1
+    }
+    _, state = get_location_info(zip_code)
+    return state_cost_multiplier.get(state, 1.0)
 
+# -----------------------------
 # Sidebar navigation
+# -----------------------------
 st.sidebar.title("Navigation")
 menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Visualize Data 📊"])
 
-# ----------------------------------------------
-# Stage 1: Home Page (Input fields and Quote Prediction)
-# ----------------------------------------------
+# -----------------------------
+# Stage 1: Home Page
+# -----------------------------
 if menu == "Home 🏠":
     st.title("Instant Quote Tool for Landscaping Services")
-    st.markdown("Use this tool to get an instant quote based on property size, zip code, and type of service.")
+    st.markdown("Get an instant quote based on property size, zip code, and type of service.")
 
     # Input fields
     zip_code = st.text_input("Enter Zip Code 🏙️", placeholder="E.g., 12345")
@@ -60,7 +71,11 @@ if menu == "Home 🏠":
         else:
             st.error("Invalid Zip Code. Please enter a valid US zip code.")
 
-    # Predefined dataset for demonstration
+        # Get cost of living adjustment
+        cost_of_living_adjustment = get_cost_of_living(zip_code)
+        st.write(f"Cost of Living Adjustment: {cost_of_living_adjustment}")
+
+    # Predefined dataset
     data = {
         'Zip Code': [12345, 12346, 12347, 12348],
         'Property Size (sq ft)': [5000, 10000, 15000, 20000],
@@ -71,6 +86,14 @@ if menu == "Home 🏠":
     df = pd.DataFrame(data)
 
     # Train a model on the predefined data
+    def train_model(data):
+        data_encoded = pd.get_dummies(data, columns=['Service Type', 'Terrain Type'])
+        X = data_encoded.drop('Quote ($)', axis=1)
+        y = data_encoded['Quote ($)']
+        model = LinearRegression()
+        model.fit(X, y)
+        return model, X
+
     model, X = train_model(df)
 
     # Create input DataFrame for prediction
@@ -85,7 +108,6 @@ if menu == "Home 🏠":
         if col not in input_data:
             input_data[col] = 0
 
-    # Convert to DataFrame
     input_df = pd.DataFrame([input_data])
 
     # Reindex the input DataFrame to match the model's expected columns
@@ -94,43 +116,31 @@ if menu == "Home 🏠":
     # Make the base prediction
     base_quote = model.predict(input_df)[0]
 
-    # Adjust the quote based on the state's cost multiplier
-    if zip_code:
-        _, state = get_location_info(zip_code)
-        adjusted_quote = base_quote * cost_multipliers.get(state, 1.0)
-    else:
-        adjusted_quote = base_quote
+    # Adjust the quote based on cost of living
+    adjusted_quote = base_quote * cost_of_living_adjustment
 
     # Display the adjusted quote
     if st.button("Get Quote 🔘"):
         st.success(f"Estimated Quote: ${adjusted_quote:.2f}")
 
-# ----------------------------------------------
+# -----------------------------
 # Stage 2: Upload Data Page
-# ----------------------------------------------
+# -----------------------------
 elif menu == "Upload Data 📂":
     st.title("Upload Your Dataset")
-    st.markdown("Upload your own CSV file to retrain the model with your business-specific data.")
-
-    # File uploader
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file is not None:
         custom_data = pd.read_csv(uploaded_file)
         st.write("Uploaded Dataset:")
         st.dataframe(custom_data)
-
-        # Retrain the model with custom data
         model, _ = train_model(custom_data)
         st.success("Model retrained with uploaded dataset!")
 
-# ----------------------------------------------
+# -----------------------------
 # Stage 3: Visualize Data Page
-# ----------------------------------------------
+# -----------------------------
 elif menu == "Visualize Data 📊":
     st.title("Data Visualization")
     st.markdown("Explore the data used to train the model and see how it fits.")
-
-    # Scatterplot of Property Size vs Quote
-    st.markdown("### Property Size vs Quote")
     st.line_chart(df[['Property Size (sq ft)', 'Quote ($)']].set_index('Property Size (sq ft)'))
