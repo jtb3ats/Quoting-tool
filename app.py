@@ -1,9 +1,10 @@
 # Import necessary libraries
-import os
-os.system("pip install pillow==8.4.0")
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 import streamlit as st
+
+# Streamlit App Title
+st.title("Property Quote Estimator")
 
 # Data Preparation
 data = {
@@ -16,28 +17,31 @@ data = {
 df = pd.DataFrame(data)
 
 # One-hot encoding for 'Zip Code' to handle categorical data
-X = pd.get_dummies(df, columns=['Zip Code']) 
-
-# Select features and target variable
-X = X[['Zip Code_12345', 'Zip Code_12346', 'Zip Code_12347', 'Zip Code_12348', 'Property Size (sq ft)']]  
+df_encoded = pd.get_dummies(df, columns=['Zip Code'])
+X = df_encoded.drop('Quote ($)', axis=1)
 y = df['Quote ($)']
 
-# Model Training, Create a Linear Regression model
+# Model Training
 model = LinearRegression()
-
-# Train the model using the prepared data
 model.fit(X, y)
 
-# Input values for prediction
-zip_code = 12348
-property_size = 12000
+# Streamlit Inputs
+st.sidebar.header("Enter Property Details")
 
-# Create input data for prediction with one-hot encoded zip code
-input_data = {'Zip Code_12345': 1, 'Zip Code_12346': 0, 'Zip Code_12347': 0, 'Zip Code_12348': 0, 'Property Size (sq ft)': property_size}
+# Input Zip Code and Property Size
+zip_code = st.sidebar.selectbox("Select Zip Code", df['Zip Code'].unique())
+property_size = st.sidebar.number_input("Enter Property Size (sq ft)", min_value=1000, max_value=50000, step=1000)
+
+# One-Hot Encoding for Input
+input_data = {f'Zip Code_{zc}': 1 if zip_code == zc else 0 for zc in df['Zip Code'].unique()}
+input_data['Property Size (sq ft)'] = property_size
+
+# Convert input data to DataFrame
 input_df = pd.DataFrame([input_data])
 
-# Make the prediction
-prediction = model.predict(input_df)
+# Prediction
+prediction = model.predict(input_df)[0]
 
-# Print the predicted quote
-print(f"Estimated Quote: ${prediction[0]:.2f}")
+# Display the result
+st.write("### Estimated Quote:")
+st.success(f"${prediction:.2f}")
