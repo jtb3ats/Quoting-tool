@@ -115,7 +115,26 @@ if menu == "Home 🏠":
         "Irrigation Installation", "Tree Removal", "Seasonal Services", "Snow Clearing"
     ])
 
-    # Rest of your code for handling job type, size, complexity, etc.
+    # Size category options based on job type
+    if job_type == "Lawn Care":
+        size_category = st.selectbox("Select Lawn Size 📏", ["Up to 5,000 sq ft", "5,000 - 10,000 sq ft", "Over 10,000 sq ft"])
+    elif job_type == "Tree Trimming":
+        size_category = st.selectbox("Select Number of Trees 🌳", ["1-2 Trees", "3-5 Trees", "6+ Trees"])
+    elif job_type == "Garden Maintenance":
+        size_category = st.selectbox("Select Garden Size 🌷", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
+    elif job_type == "Irrigation Installation":
+        size_category = st.selectbox("Select Installation Type 💧", ["Base Cost"])
+    elif job_type == "Tree Removal":
+        size_category = st.selectbox("Select Tree Size 🌲", ["Small Tree", "Medium Tree", "Large Tree"])
+    elif job_type == "Seasonal Services":
+        size_category = st.selectbox("Select Job Size 🍂", ["Small Job", "Medium Job", "Large Job"])
+    elif job_type == "Snow Clearing":
+        size_category = st.selectbox("Select Area Size ❄️", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
+    else:
+        size_category = st.selectbox("Select Size Category 📏", ["Unknown"])
+
+    complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
+    special_requests = st.text_input("Special Requests (Optional)")
 
     # Dynamic quote prediction
     if zip_code and job_type and size_category and complexity:
@@ -127,7 +146,7 @@ if menu == "Home 🏠":
             <p><strong>Range:</strong> ${lower_bound:.2f} - ${upper_bound:.2f}</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
 # -----------------------------
 # Upload Data Page
 # -----------------------------
@@ -141,6 +160,13 @@ elif menu == "Upload Data 📂":
         st.write("Uploaded Dataset:")
         st.dataframe(data)
 
-        # Feature Expansion: Add more features for
+        # Feature Expansion: Add more features for training the model
+        # This section can be expanded based on further requirements
 
- 
+# -----------------------------
+# Model Performance Page
+# -----------------------------
+elif menu == "Model Performance 📊":
+    st.title("Model Performance Overview")
+    st.markdown("This page will display the model's performance metrics such as R2, MAE, and more based on the dataset.")
+    # Implement model training and performance metrics here if necessary
