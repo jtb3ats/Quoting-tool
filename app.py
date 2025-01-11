@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
+import os
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
@@ -13,32 +14,72 @@ st.set_page_config(page_title="Smart Landscaping Quote Tool", layout="wide")
 # Base Costs for Services
 # -----------------------------
 base_costs = {
-    "Lawn Care": {"Small": 50, "Medium": 100, "Large": 200},
-    "Tree Trimming": {"Small": 300, "Medium": 700, "Large": 1200},
-    "Garden Maintenance": {"Small": 150, "Medium": 400, "Large": 800},
-    "Irrigation Installation": {"Base": 2500},
-    "Tree Removal": {"Base": 800},
-    "Seasonal Services": {"Base": 200}
+    "Lawn Care": {
+        "Up to 5,000 sq ft": 50,
+        "5,000 - 10,000 sq ft": 100,
+        "Over 10,000 sq ft": 200
+    },
+    "Tree Trimming": {
+        "1-2 Trees": 300,
+        "3-5 Trees": 700,
+        "6+ Trees": 1200
+    },
+    "Garden Maintenance": {
+        "Up to 1,000 sq ft": 150,
+        "1,000 - 5,000 sq ft": 400,
+        "Over 5,000 sq ft": 800
+    },
+    "Irrigation Installation": {
+        "Base Cost": 2500
+    },
+    "Tree Removal": {
+        "Small Tree": 300,
+        "Medium Tree": 800,
+        "Large Tree": 1500
+    },
+    "Seasonal Services": {
+        "Small Job": 100,
+        "Medium Job": 250,
+        "Large Job": 400
+    },
+    "Snow Clearing": {
+        "Up to 1,000 sq ft": 100,
+        "1,000 - 5,000 sq ft": 250,
+        "Over 5,000 sq ft": 400
+    }
 }
 
 # -----------------------------
 # Function to simulate job costs
 # -----------------------------
-def simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests):
+def simulate_job_cost(zip_code, job_type, size_category, complexity, special_requests):
     """Simulate job costs based on input parameters."""
-    base_cost = base_costs[job_type][lot_size]
+
+    # Check if the job type exists in base_costs
+    if job_type not in base_costs:
+        st.warning(f"Job type '{job_type}' is not recognized. Please select a valid job type.")
+        return 0, 0
+
+    # Get the base cost based on size category
+    base_cost = base_costs[job_type].get(size_category, 0)
+
+    # Adjust for terrain complexity (if applicable)
     complexity_multiplier = {"Flat": 1.0, "Sloped": 1.2, "Rocky": 1.3}
     adjusted_cost = base_cost * complexity_multiplier[complexity]
 
+    # Add special request cost
     if special_requests:
         adjusted_cost += 50
 
+    # Return a confidence interval
     lower_bound = adjusted_cost * 0.9
     upper_bound = adjusted_cost * 1.1
 
     return lower_bound, upper_bound
 
+# -----------------------------
 # Sidebar navigation
+# -----------------------------
 st.sidebar.title("Navigation")
 menu = st.sidebar.radio("Go to", ["Home 🏠", "Upload Data 📂", "Model Performance 📊"])
 
@@ -51,13 +92,35 @@ if menu == "Home 🏠":
 
     # Input fields
     zip_code = st.text_input("Enter ZIP Code 🏙️", placeholder="E.g., 90210")
-    job_type = st.selectbox("Select Job Type 🛠️", ["Lawn Care", "Tree Trimming", "Garden Maintenance", "Irrigation Installation", "Tree Removal", "Seasonal Services"])
-    lot_size = st.selectbox("Select Lot Size 📏", ["Small", "Medium", "Large"])
+    job_type = st.selectbox("Select Job Type 🛠️", [
+        "Lawn Care", "Tree Trimming", "Garden Maintenance",
+        "Irrigation Installation", "Tree Removal", "Seasonal Services", "Snow Clearing"
+    ])
+
+    # Size category options based on job type
+    if job_type == "Lawn Care":
+        size_category = st.selectbox("Select Lawn Size 📏", ["Up to 5,000 sq ft", "5,000 - 10,000 sq ft", "Over 10,000 sq ft"])
+    elif job_type == "Tree Trimming":
+        size_category = st.selectbox("Select Number of Trees 🌳", ["1-2 Trees", "3-5 Trees", "6+ Trees"])
+    elif job_type == "Garden Maintenance":
+        size_category = st.selectbox("Select Garden Size 🌷", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
+    elif job_type == "Irrigation Installation":
+        size_category = st.selectbox("Select Installation Type 💧", ["Base Cost"])
+    elif job_type == "Tree Removal":
+        size_category = st.selectbox("Select Tree Size 🌲", ["Small Tree", "Medium Tree", "Large Tree"])
+    elif job_type == "Seasonal Services":
+        size_category = st.selectbox("Select Job Size 🍂", ["Small Job", "Medium Job", "Large Job"])
+    elif job_type == "Snow Clearing":
+        size_category = st.selectbox("Select Area Size ❄️", ["Up to 1,000 sq ft", "1,000 - 5,000 sq ft", "Over 5,000 sq ft"])
+    else:
+        size_category = st.selectbox("Select Size Category 📏", ["Unknown"])
+
     complexity = st.selectbox("Select Terrain Complexity 🌄", ["Flat", "Sloped", "Rocky"])
     special_requests = st.text_input("Special Requests (Optional)")
 
-    if zip_code and job_type and lot_size and complexity:
-        lower_bound, upper_bound = simulate_job_cost(zip_code, job_type, lot_size, complexity, special_requests)
+    # Dynamic quote prediction
+    if zip_code and job_type and size_category and complexity:
+        lower_bound, upper_bound = simulate_job_cost(zip_code, job_type, size_category, complexity, special_requests)
 
         st.markdown(f"""
         <div style="background-color:#f9f9f9;padding:20px;border-radius:10px;">
@@ -94,10 +157,16 @@ elif menu == "Upload Data 📂":
         mae = mean_absolute_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
 
+        # Update the retraining counter
+        retrain_count = st.session_state.get("retrain_count", 0)
+        retrain_count += 1
+        st.session_state["retrain_count"] = retrain_count
+
         # Display performance metrics
         st.success("Model retrained with uploaded data!")
         st.write(f"Mean Absolute Error: {mae:.2f}")
         st.write(f"R-Squared (R²): {r2:.2f}")
+        st.write(f"Number of Retrainings: {retrain_count}")
 
 # -----------------------------
 # Model Performance Page
@@ -106,11 +175,7 @@ elif menu == "Model Performance 📊":
     st.title("Model Performance")
     st.markdown("Track how your model is improving over time.")
 
-    # Example performance metrics
-    metrics = {
-        "Mean Absolute Error": mae,
-        "R-Squared": r2,
-        "Number of Retrainings": 5  # Replace with a dynamic counter if needed
-    }
-
-    st.write(metrics)
+    # Display dynamic performance metrics
+    st.write(f"Mean Absolute Error: {st.session_state.get('mae', 'N/A'):.2f}")
+    st.write(f"R-Squared (R²): {st.session_state.get('r2', 'N/A'):.2f}")
+    st.write(f"Number of Retrainings: {st.session_state.get('retrain_count', 0)}")
