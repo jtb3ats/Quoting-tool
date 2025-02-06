@@ -1,6 +1,6 @@
 # Quick Quote AI - A Smart Landscaping Quote Tool
 
-![Quick Quote AI](https://quickquoteai.streamlit.app/))
+![Quick Quote AI](https://quickquoteai.streamlit.app/)
 
 ## Overview
 
