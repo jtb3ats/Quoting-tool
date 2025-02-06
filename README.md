@@ -33,4 +33,4 @@ The **Smart Landscaping Quote Tool** is an intuitive web application designed to
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/smart-landscaping-quote-tool.git
+   git clone https://github.com/jtb3ats/smart-landscaping-quote-tool.git
