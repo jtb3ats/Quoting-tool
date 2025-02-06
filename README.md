@@ -1,7 +1,5 @@
 # Quick Quote AI - A Smart Landscaping Quote Tool
 
-![Quick Quote AI](https://quickquoteai.streamlit.app/)
-
 ## Overview
 
 The **Smart Landscaping Quote Tool** is an intuitive web application designed to provide accurate and instant quotes for various landscaping services. By inputting specific project details, users receive tailored cost estimates, enhancing transparency and efficiency in the landscaping industry.
